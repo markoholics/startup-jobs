@@ -57,6 +57,7 @@
 
   <script src="config.js"></script>
   <script>
+  (function () {
     const { url, anonKey } = window.SUPABASE_CONFIG || {};
     if (!url || !anonKey) {
       document.body.innerHTML = '<p>Missing dashboard/config.js — copy config.example.js and fill in your Supabase project URL + anon key.</p>';
@@ -131,6 +132,7 @@
     document.getElementById('active-only').addEventListener('change', render);
 
     load();
+  })();
   </script>
 </body>
 </html>
