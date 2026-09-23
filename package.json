@@ -1,0 +1,17 @@
+{
+  "name": "bangalore-ai-hiring-signal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Daily watcher tracking marketing-role hiring at Bangalore AI startups, writing to Supabase for an external dashboard.",
+  "scripts": {
+    "collect": "node src/run.js",
+    "discover": "node src/discovery/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

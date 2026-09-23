@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bangalore AI Hiring Signal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; background: Canvas; color: CanvasText; }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  p.sub { color: GrayText; margin-top: 0; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
+  select, label { font-size: 0.9rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent); }
+  th { position: sticky; top: 0; background: Canvas; }
+  a { color: inherit; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; }
+  .badge.active { background: #16a34a33; color: #16a34a; }
+  .badge.inactive { background: #6b728033; color: #6b7280; }
+  .empty { color: GrayText; padding: 24px 0; }
+</style>
+</head>
+<body>
+  <h1>Bangalore AI Hiring Signal</h1>
+  <p class="sub">Marketing-role postings across Bangalore AI/ML/GenAI startups, refreshed daily.</p>
+
+  <div class="controls">
+    <label>
+      Category
+      <select id="category-filter">
+        <option value="">All categories</option>
+      </select>
+    </label>
+    <label>
+      <input type="checkbox" id="active-only" checked />
+      Active only
+    </label>
+    <span id="count" class="sub"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Role</th>
+        <th>Category</th>
+        <th>Source</th>
+        <th>First seen</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">No postings match the current filters.</div>
+
+  <script src="config.js"></script>
+  <script>
+    const { url, anonKey } = window.SUPABASE_CONFIG || {};
+    if (!url || !anonKey) {
+      document.body.innerHTML = '<p>Missing dashboard/config.js — copy config.example.js and fill in your Supabase project URL + anon key.</p>';
+      throw new Error('missing config');
+    }
+    const supabase = window.supabase.createClient(url, anonKey);
+
+    let allPostings = [];
+
+    function render() {
+      const category = document.getElementById('category-filter').value;
+      const activeOnly = document.getElementById('active-only').checked;
+
+      const filtered = allPostings.filter((p) => {
+        if (category && p.role_category !== category) return false;
+        if (activeOnly && !p.is_active) return false;
+        return true;
+      });
+
+      const rowsEl = document.getElementById('rows');
+      const emptyEl = document.getElementById('empty');
+      rowsEl.innerHTML = '';
+
+      if (filtered.length === 0) {
+        emptyEl.style.display = 'block';
+      } else {
+        emptyEl.style.display = 'none';
+        for (const p of filtered) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.companies?.name ?? '—'}</td>
+            <td>${p.posting_url ? `<a href="${p.posting_url}" target="_blank" rel="noopener">${p.role_title}</a>` : p.role_title}</td>
+            <td>${p.role_category}</td>
+            <td>${p.source}</td>
+            <td>${new Date(p.first_seen_at).toLocaleDateString()}</td>
+            <td><span class="badge ${p.is_active ? 'active' : 'inactive'}">${p.is_active ? 'Active' : 'Inactive'}</span></td>
+          `;
+          rowsEl.appendChild(tr);
+        }
+      }
+
+      document.getElementById('count').textContent = `${filtered.length} of ${allPostings.length} postings`;
+    }
+
+    async function load() {
+      const { data, error } = await supabase
+        .from('job_postings')
+        .select('role_title, role_category, source, posting_url, first_seen_at, is_active, companies(name)')
+        .order('first_seen_at', { ascending: false });
+
+      if (error) {
+        document.getElementById('empty').style.display = 'block';
+        document.getElementById('empty').textContent = `Error loading data: ${error.message}`;
+        return;
+      }
+
+      allPostings = data;
+
+      const categories = [...new Set(data.map((p) => p.role_category))].sort();
+      const select = document.getElementById('category-filter');
+      for (const cat of categories) {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      }
+
+      render();
+    }
+
+    document.getElementById('category-filter').addEventListener('change', render);
+    document.getElementById('active-only').addEventListener('change', render);
+
+    load();
+  </script>
+</body>
+</html>
