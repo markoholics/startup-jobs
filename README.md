@@ -70,10 +70,13 @@ no new project needed.
    run discovery first to populate `hiring_signal_companies`, then collection. Always use
    *Run workflow* after editing a workflow file; re-running a stale run
    replays the old snapshot instead of the edit.
-4. **Dashboard**: copy `dashboard/config.example.js` to `dashboard/config.js`,
-   fill in the Supabase project URL and anon key (safe to expose — RLS grants
-   SELECT only), then deploy the `dashboard/` folder to Vercel as a static
-   site.
+4. **Dashboard**: deployed as its own Vercel project with root directory
+   `dashboard/` and build command `node generate-config.mjs` (already set in
+   `dashboard/vercel.json`). Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` as
+   project env vars (Production + Preview) — the anon key is safe to expose,
+   RLS grants SELECT only — and the build writes `config.js` from them. For
+   local preview instead, copy `dashboard/config.example.js` to
+   `dashboard/config.js` and fill in the values directly.
 
 Local run:
 
