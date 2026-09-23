@@ -87,7 +87,7 @@
         for (const p of filtered) {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${p.companies?.name ?? '—'}</td>
+            <td>${p.hiring_signal_companies?.name ?? '—'}</td>
             <td>${p.posting_url ? `<a href="${p.posting_url}" target="_blank" rel="noopener">${p.role_title}</a>` : p.role_title}</td>
             <td>${p.role_category}</td>
             <td>${p.source}</td>
@@ -103,8 +103,8 @@
 
     async function load() {
       const { data, error } = await supabase
-        .from('job_postings')
-        .select('role_title, role_category, source, posting_url, first_seen_at, is_active, companies(name)')
+        .from('hiring_signal_job_postings')
+        .select('role_title, role_category, source, posting_url, first_seen_at, is_active, hiring_signal_companies(name)')
         .order('first_seen_at', { ascending: false });
 
       if (error) {

@@ -3,19 +3,23 @@
 Daily watcher that tracks marketing-role hiring at ~50 Bangalore-HQ AI/ML/GenAI
 startups and writes results to Supabase for an external dashboard. Adapted
 from the Signal Engine architecture — the scoring engine is dropped, only the
-collector-plus-database pattern is kept.
+collector-plus-database pattern is kept. All tables use a `hiring_signal_`
+prefix (`hiring_signal_companies`, `hiring_signal_job_postings`,
+`hiring_signal_page_watch_state`) so this build is fully additive and never
+touches, alters, or overwrites any existing Signal Engine table — including
+an existing `companies` table, if the reused project already has one.
 
 ## How it works
 
 1. **Weekly discovery** (`npm run discover`, Monday cron) tops up the
-   `companies` table toward a target of 50 rows. It never overwrites or
+   `hiring_signal_companies` table toward a target of 50 rows. It never overwrites or
    removes existing rows — manual entries and previously discovered
    companies are left alone. Currently sourced from `data/companies.seed.json`;
    the public-index connectors (YourStory, Inc42, Wellfound, NASSCOM) are
    stubbed in `src/discovery/sources.js` pending a compliance pass on each
    site's terms/robots.txt.
 2. **Daily collection** (`npm run collect`, daily cron) runs three collectors
-   per company and upserts marketing-role postings into `job_postings`:
+   per company and upserts marketing-role postings into `hiring_signal_job_postings`:
    - **ATS poll** (`src/collectors/ats.js`) — public Greenhouse/Lever/Ashby
      JSON endpoints, filtered to Bangalore + role keywords.
    - **Page watcher** (`src/collectors/pageWatcher.js`) — hashes each
@@ -52,8 +56,8 @@ Reuses the existing Signal Engine repo's Supabase project and hosting stack —
 no new project needed.
 
 1. **Database**: run `supabase/schema.sql` against the Signal Engine Supabase
-   project (SQL editor, or `supabase db push`). It only adds `companies`,
-   `job_postings`, and `page_watch_state` — nothing in the existing schema is
+   project (SQL editor, or `supabase db push`). It only adds `hiring_signal_companies`,
+   `hiring_signal_job_postings`, and `hiring_signal_page_watch_state` — nothing in the existing schema is
    touched.
 2. **GitHub Actions secrets** (repo Settings → Secrets and variables →
    Actions): `SUPABASE_URL` (pooler connection string's project URL, not the
@@ -63,7 +67,7 @@ no new project needed.
    - Add workflow files via GitHub's "Create new file" box, not drag-upload —
      drag-upload silently drops the `.github` directory.
 3. **First run**: trigger both workflows manually once via *Run workflow* —
-   run discovery first to populate `companies`, then collection. Always use
+   run discovery first to populate `hiring_signal_companies`, then collection. Always use
    *Run workflow* after editing a workflow file; re-running a stale run
    replays the old snapshot instead of the edit.
 4. **Dashboard**: copy `dashboard/config.example.js` to `dashboard/config.js`,
@@ -102,7 +106,7 @@ npm run collect
 ## Repo layout
 
 ```
-supabase/schema.sql       companies, job_postings, page_watch_state tables + RLS
+supabase/schema.sql       hiring_signal_companies, hiring_signal_job_postings, hiring_signal_page_watch_state tables + RLS
 data/companies.seed.json  bootstrap target list (discovery tops this up)
 src/lib/                  taxonomy + Supabase client helpers
 src/collectors/           ats.js, pageWatcher.js, adzuna.js

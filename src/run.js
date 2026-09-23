@@ -20,7 +20,7 @@ async function upsertPostings(supabase, company, rawPostings) {
     });
     seenKeys.add(dedupeKey);
 
-    const { error } = await supabase.from('job_postings').upsert(
+    const { error } = await supabase.from('hiring_signal_job_postings').upsert(
       {
         company_id: company.id,
         role_title: raw.title,
@@ -41,7 +41,7 @@ async function upsertPostings(supabase, company, rawPostings) {
 
 async function markMissingAsStale(supabase, company, seenKeys) {
   const { data: activePostings, error } = await supabase
-    .from('job_postings')
+    .from('hiring_signal_job_postings')
     .select('id, dedupe_key, miss_count')
     .eq('company_id', company.id)
     .eq('is_active', true);
@@ -57,7 +57,7 @@ async function markMissingAsStale(supabase, company, seenKeys) {
     const shouldDeactivate = nextMissCount >= MAX_CONSECUTIVE_MISSES;
 
     const { error: updateErr } = await supabase
-      .from('job_postings')
+      .from('hiring_signal_job_postings')
       .update({
         miss_count: nextMissCount,
         is_active: !shouldDeactivate,
@@ -72,14 +72,14 @@ async function runCompany(supabase, company) {
     collectAtsPostings(company),
     (async () => {
       const { data: state } = await supabase
-        .from('page_watch_state')
+        .from('hiring_signal_page_watch_state')
         .select('content_hash')
         .eq('company_id', company.id)
         .maybeSingle();
       const result = await collectPageWatch(company, state?.content_hash);
       if (result) {
         await supabase
-          .from('page_watch_state')
+          .from('hiring_signal_page_watch_state')
           .upsert({ company_id: company.id, content_hash: result.contentHash, checked_at: new Date().toISOString() });
       }
       return result;
@@ -93,7 +93,7 @@ async function runCompany(supabase, company) {
 async function main() {
   const supabase = getSupabaseClient();
 
-  const { data: companies, error } = await supabase.from('companies').select('*');
+  const { data: companies, error } = await supabase.from('hiring_signal_companies').select('*');
   if (error) throw error;
   if (!companies?.length) {
     console.log('[run] no companies in target list yet — run discovery first.');

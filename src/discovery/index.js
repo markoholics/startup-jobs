@@ -12,7 +12,7 @@ async function runDiscovery() {
   const supabase = getSupabaseClient();
 
   const { data: existing, error: fetchErr } = await supabase
-    .from('companies')
+    .from('hiring_signal_companies')
     .select('id, name, domain, is_manual');
   if (fetchErr) throw fetchErr;
 
@@ -68,7 +68,7 @@ async function runDiscovery() {
     return;
   }
 
-  const { error: insertErr } = await supabase.from('companies').insert(toInsert);
+  const { error: insertErr } = await supabase.from('hiring_signal_companies').insert(toInsert);
   if (insertErr) throw insertErr;
 
   console.log(
