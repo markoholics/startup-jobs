@@ -1,6 +1,6 @@
 # Bangalore AI Hiring Signal
 
-Daily watcher that tracks marketing-role hiring at ~50 Bangalore-HQ AI/ML/GenAI
+Daily watcher that tracks marketing-role hiring at Bangalore-HQ AI/ML/GenAI
 startups and writes results to Supabase for an external dashboard. Adapted
 from the Signal Engine architecture — the scoring engine is dropped, only the
 collector-plus-database pattern is kept. All tables use a `hiring_signal_`
@@ -12,12 +12,22 @@ an existing `companies` table, if the reused project already has one.
 ## How it works
 
 1. **Weekly discovery** (`npm run discover`, Monday cron) tops up the
-   `hiring_signal_companies` table toward a target of 50 rows. It never overwrites or
-   removes existing rows — manual entries and previously discovered
-   companies are left alone. Currently sourced from `data/companies.seed.json`;
-   the public-index connectors (YourStory, Inc42, Wellfound, NASSCOM) are
-   stubbed in `src/discovery/sources.js` pending a compliance pass on each
-   site's terms/robots.txt.
+   `hiring_signal_companies` table toward a target of 200 rows. It never
+   overwrites or removes existing rows — manual entries and previously
+   discovered companies are left alone. Two sources are wired up:
+   - `data/companies.seed.json` — the original 50-company hand-curated list,
+     each with a trusted `careers_url`/ATS slug, inserted as-is.
+   - `data/icp-candidates.json` — 69 Bangalore-HQ, AI-signal companies
+     filtered from a Traxn client ICP export (confirmed-Indian city or `.in`
+     domain, Bangalore/Bengaluru location, and an "AI" signal in the name or
+     `.ai` domain). These ship with only a name + domain, no verified
+     careers page, so `src/discovery/probeCareersUrl.js` live-probes each
+     one (Greenhouse/Lever API, then a set of common `/careers` paths on the
+     company's own domain) before it's added — a candidate with no
+     reachable careers page is dropped, never inserted with a guessed URL.
+   The public-index connectors (YourStory, Inc42, Wellfound, NASSCOM) are
+   still stubbed in `src/discovery/sources.js` pending a compliance pass on
+   each site's terms/robots.txt.
 2. **Daily collection** (`npm run collect`, daily cron) runs three collectors
    per company and upserts marketing-role postings into `hiring_signal_job_postings`:
    - **ATS poll** (`src/collectors/ats.js`) — public Greenhouse/Lever/Ashby
@@ -109,12 +119,13 @@ npm run collect
 ## Repo layout
 
 ```
-supabase/schema.sql       hiring_signal_companies, hiring_signal_job_postings, hiring_signal_page_watch_state tables + RLS
-data/companies.seed.json  bootstrap target list (discovery tops this up)
-src/lib/                  taxonomy + Supabase client helpers
-src/collectors/           ats.js, pageWatcher.js, adzuna.js
-src/discovery/            weekly company-list top-up
-src/run.js                daily collection orchestrator
-dashboard/                static page reading Supabase, deployed to Vercel
-.github/workflows/        daily-collect.yml, weekly-discovery.yml
+supabase/schema.sql        hiring_signal_companies, hiring_signal_job_postings, hiring_signal_page_watch_state tables + RLS
+data/companies.seed.json   original 50-company hand-curated list (trusted careers_url/ATS slugs)
+data/icp-candidates.json   69 Bangalore + AI candidates from the Traxn ICP export (unverified, live-probed on discovery)
+src/lib/                   taxonomy + Supabase client helpers
+src/collectors/            ats.js, pageWatcher.js, adzuna.js
+src/discovery/             weekly company-list top-up + probeCareersUrl.js (live careers-page verification)
+src/run.js                 daily collection orchestrator
+dashboard/                 static page reading Supabase, deployed to Vercel
+.github/workflows/         daily-collect.yml, weekly-discovery.yml
 ```

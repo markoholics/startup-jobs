@@ -14,11 +14,24 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const SEED_PATH = fileURLToPath(new URL('../../data/companies.seed.json', import.meta.url));
+const ICP_CANDIDATES_PATH = fileURLToPath(new URL('../../data/icp-candidates.json', import.meta.url));
 
 export async function seedListSource() {
   const raw = await readFile(SEED_PATH, 'utf8');
   const companies = JSON.parse(raw);
   return companies.map((c) => ({ ...c, source: 'seed_list' }));
+}
+
+// Bangalore-HQ AI/ML/GenAI companies pulled from a Traxn client ICP export,
+// filtered to confirmed-Indian + Bangalore + AI-signal companies. These
+// ship with only a name + domain — no careers_url or ATS slug — so
+// discovery must live-probe each one (see probeCareersUrl.js) before
+// trusting it; a candidate with no reachable careers page is dropped
+// rather than added with a guessed URL.
+export async function icpCandidatesSource() {
+  const raw = await readFile(ICP_CANDIDATES_PATH, 'utf8');
+  const companies = JSON.parse(raw);
+  return companies.map((c) => ({ ...c, source: 'icp_list' }));
 }
 
 // --- Stubs for future compliance-reviewed connectors ------------------
@@ -49,6 +62,7 @@ export async function nasscomSource() {
 
 export const ALL_SOURCES = [
   seedListSource,
+  icpCandidatesSource,
   yourStorySource,
   inc42Source,
   wellfoundSource,
